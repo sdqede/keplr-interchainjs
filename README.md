@@ -1,36 +1,72 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
-
 ## Getting Started
 
 First, run the development server:
 
 ```bash
-npm run dev
-# or
 yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Using InterchanJS in the Frontend
+```typescript
+import { SigningClient } from "@interchainjs/cosmos/signing-client";
+import { AminoGenericOfflineSigner, OfflineAminoSigner } from "@interchainjs/cosmos/types/wallet";
+import { MsgSend } from 'interchainjs/cosmos/bank/v1beta1/tx'
+import { toEncoders, toConverters } from '@interchainjs/cosmos/utils'
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+// Get Keplr offline signer
+const keplrOfflineSigner = window.keplr.getOfflineSignerOnlyAmino(chainId);
+const offlineSigner = new AminoGenericOfflineSigner(keplrOfflineSigner);
 
-## Learn More
+// Create signing client
+const signingClient = await SigningClient.connectWithSigner(
+  rpcEndpoint,
+  offlineSigner,
+  {
+    broadcast: {
+      checkTx: true,
+      deliverTx: true
+    }
+  }
+);
+signingClient.addEncoders(toEncoders(MsgSend))
+signingClient.addConverters(toConverters(MsgSend))
 
-To learn more about Next.js, take a look at the following resources:
+// Get account info
+const accounts = await offlineSigner.getAccounts();
+const senderAddress = accounts[0].address;
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+// Build transfer message
+const transferMsg = {
+  typeUrl: "/cosmos.bank.v1beta1.MsgSend",
+  value: {
+    fromAddress: senderAddress,
+    toAddress: form.toAddress,
+    amount: [{
+      denom: "uatom",
+      amount: (parseFloat(form.amount) * 1000000).toString() // Convert to uatom
+    }]
+  }
+};
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+// Set fee
+const fee = {
+  amount: [{
+    denom: "uatom",
+    amount: "5000" // 0.005 ATOM fee
+  }],
+  gas: "200000"
+};
 
-## Deploy on Vercel
+// Sign and broadcast transaction
+const result = await signingClient.signAndBroadcast(
+  senderAddress,
+  [transferMsg],
+  fee,
+  form.memo || "Transfer ATOM via InterchainJS"
+);
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+console.log(result.transactionHash);
+```
+Refer to [src/app/page.tsx](src/app/page.tsx) for an example
