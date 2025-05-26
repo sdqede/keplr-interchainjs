@@ -2,14 +2,15 @@
 
 import { useState, useEffect } from 'react';
 import { SigningClient } from "@interchainjs/cosmos/signing-client";
-import { AminoGenericOfflineSigner, OfflineAminoSigner } from "@interchainjs/cosmos/types/wallet";
+import { AminoGenericOfflineSigner, OfflineAminoSigner, OfflineDirectSigner, DirectGenericOfflineSigner } from "@interchainjs/cosmos/types/wallet";
 import { MsgSend } from 'interchainjs/cosmos/bank/v1beta1/tx'
-import { toEncoders, toConverters } from '@interchainjs/cosmos/utils'
+import { send } from "interchainjs/cosmos/bank/v1beta1/tx.rpc.func"
 
 // Keplr wallet interface
 interface KeplrWallet {
   enable(chainId: string): Promise<void>;
   getOfflineSignerOnlyAmino(chainId: string): OfflineAminoSigner;
+  getOfflineSigner(chainId: string): OfflineDirectSigner;
 }
 
 // Balance response interface
@@ -143,8 +144,10 @@ export default function Home() {
       setTxHash('');
 
       // Get Keplr offline signer
-      const keplrOfflineSigner = window.keplr.getOfflineSignerOnlyAmino(chainId);
-      const offlineSigner = new AminoGenericOfflineSigner(keplrOfflineSigner);
+      // const keplrOfflineSigner = window.keplr.getOfflineSignerOnlyAmino(chainId);
+      // const offlineSigner = new AminoGenericOfflineSigner(keplrOfflineSigner);
+      const keplrOfflineSigner = window.keplr.getOfflineSigner(chainId);
+      const offlineSigner = new DirectGenericOfflineSigner(keplrOfflineSigner);
 
       // Create signing client
       const signingClient = await SigningClient.connectWithSigner(
@@ -157,23 +160,24 @@ export default function Home() {
           }
         }
       );
-      signingClient.addEncoders(toEncoders(MsgSend))
-      signingClient.addConverters(toConverters(MsgSend))
+      signingClient.addEncoders([MsgSend])
+      signingClient.addConverters([MsgSend])
 
       // Get account info
       const accounts = await offlineSigner.getAccounts();
       const senderAddress = accounts[0].address;
 
       // Build transfer message
+      const amount = [{
+        denom: "uatom",
+        amount: (parseFloat(form.amount) * 1000000).toString() // Convert to uatom
+      }]
       const transferMsg = {
         typeUrl: "/cosmos.bank.v1beta1.MsgSend",
         value: {
           fromAddress: senderAddress,
           toAddress: form.toAddress,
-          amount: [{
-            denom: "uatom",
-            amount: (parseFloat(form.amount) * 1000000).toString() // Convert to uatom
-          }]
+          amount
         }
       };
 
@@ -193,6 +197,15 @@ export default function Home() {
         fee,
         form.memo || "Transfer ATOM via InterchainJS"
       );
+
+      // or use the send function
+      // const result = await send(
+      //   signingClient,
+      //   senderAddress,
+      //   { fromAddress: senderAddress, toAddress: form.toAddress, amount },
+      //   fee,
+      //   form.memo || "Transfer ATOM via InterchainJS"
+      // );
 
       setTxHash(result.transactionHash);
       
