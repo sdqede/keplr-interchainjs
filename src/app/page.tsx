@@ -2,9 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { SigningClient } from "@interchainjs/cosmos/signing-client";
-import { AminoGenericOfflineSigner, OfflineAminoSigner, OfflineDirectSigner, DirectGenericOfflineSigner } from "@interchainjs/cosmos/types/wallet";
+import { 
+  // AminoGenericOfflineSigner, 
+  OfflineAminoSigner, OfflineDirectSigner, DirectGenericOfflineSigner } from "@interchainjs/cosmos/types/wallet";
 import { MsgSend } from 'interchainjs/cosmos/bank/v1beta1/tx'
-import { send } from "interchainjs/cosmos/bank/v1beta1/tx.rpc.func"
+// import { send } from "interchainjs/cosmos/bank/v1beta1/tx.rpc.func"
 
 // Keplr wallet interface
 interface KeplrWallet {
