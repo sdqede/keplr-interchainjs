@@ -247,7 +247,7 @@ export default function Home() {
           fontSize: '2.5rem',
           fontWeight: 'bold'
         }}>
-          🚀 ATOM Transfer Tool
+          🚀 InterchanJS Demo
         </h1>
 
         {!isKeplrConnected ? (
